@@ -31,6 +31,10 @@ app.use("/api/user", router)
 app.use("/api/products", productrouter)
 app.use("/api/order", orderRouter)
 app.use("/api/dashboard", dashRouter)
+app.get("/", (req, res) => {
+    res.send("hello")
+})
+
 
 
 
