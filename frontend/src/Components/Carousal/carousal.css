@@ -1,0 +1,13 @@
+.bg{
+background: url('/public/Home.jpeg') no-repeat ;
+background-size: 100% 100%;
+object-fit: cover;
+}
+ 
+.video{
+display: flex;
+flex-direction: column;
+align-items: center;
+width: 100%;
+margin-bottom: 50px;
+}

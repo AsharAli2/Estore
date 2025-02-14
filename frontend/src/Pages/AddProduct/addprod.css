@@ -1,0 +1,17 @@
+.Container{
+    display: flex;
+    flex-direction:column ;
+    width: 60% !important;
+    align-items: center;
+    justify-content: center;
+    gap: 20px ;
+    }
+
+   .Container div{
+        border-radius: 12px 12px 0 12px !important;
+
+    }
+
+    .Container h2{
+        font-family: cursive;
+    }
