@@ -1,0 +1,1 @@
+export const API_URL = 'https://estore-backend-nu.vercel.app/api';
