@@ -55,7 +55,7 @@ Example card layout:
     <img src="{image}" alt="{name}" style="border-radius: 20px; height: 100px; width: 100px;" />
     <p><b>{name}</b></p>
     <p>Price: Rs {price}</p>
-    <a href="http://localhost:5173/Product/{_id}">View Product</a>
+    <a href="https://estore-frontend-jade.vercel.app/Product/{_id}">View Product</a>
   </div>
 </div>
 
