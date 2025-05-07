@@ -1,6 +1,5 @@
 
 import express from 'express';
-import session from 'express-session'; // Import session middleware
 import { config } from "dotenv";
 config();
 import { GoogleGenAI } from '@google/genai';
@@ -9,15 +8,11 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 const chatRouter = express.Router();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-chatRouter.use(session({
-    secret: process.env.jwt_secret, // Replace with a secure secret key
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Set to true if using HTTPS
-}));
+
+const history = []
 
 const system = `
-You are an AI assistant that helps users find and learn about products.
+You are an AI assistant that helps users find,compare and learn about products.
 
 You receive a stringified JSON list of product objects.
 Each product has these fields: _id, name, price, image, description, quantity, Brand, Category, sold, averageRating, ratingCount, score.
@@ -27,7 +22,7 @@ Your tasks:
 1. Parse the string into a list of product objects.
 2. If product information is available:
     - First, show the product names and descriptions using proper HTML bullet points:
-    
+
     Example format:
     <ul>
       <li><b>{name}</b>: {description}</li>
@@ -40,6 +35,19 @@ Your tasks:
         - Product image (use 'image' field) inside <img> tag.
         - Product name and price inside <p> tags with <b> styling.
 
+
+
+4. If no products are available, politely inform the user.
+
+5. You may also suggest:
+    - Visiting the product page: 
+      <a href="http://localhost:5173/Product/{_id}">View Product</a>
+    - Adding to cart.
+
+6. Be concise, friendly, and helpful.
+
+7.If the user asks to compare products, highlight differences in features, price, and specifications clearly and you can also fetch product details from outside sources. Use a structured comparison format such as a HTML table .
+
 Example card layout:
 
 <div style="display: flex; flex-wrap: wrap; gap: 15px;justify-content: center;margin-top: 10px;">
@@ -51,16 +59,36 @@ Example card layout:
   </div>
 </div>
 
-4. If no products are available, politely inform the user.
+Example comparison format:
 
-5. You may also suggest:
-    - Visiting the product page: 
-      <a href="https://estore-frontend-jade.vercel.app/Product/{_id}">View Product</a>
-    - Adding to cart.
+<table border="1" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>{Product 1 Name}</th>
+      <th>{Product 2 Name}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Price</td>
+      <td>Rs {price1}</td>
+      <td>Rs {price2}</td>
+    </tr>
+    <tr>
+      <td>Brand</td>
+      <td>{brand1}</td>
+      <td>{brand2}</td>
+    </tr>
+    <tr>
+      <td>Average Rating</td>
+      <td>{averageRating1} / 5</td>
+      <td>{averageRating2} / 5</td>
+    </tr>
+    <!-- More rows if necessary -->
+  </tbody>
+</table>
 
-6. Be concise, friendly, and helpful.
-
-Important: Never invent or assume details beyond the provided fields.
 `
 
 chatRouter.post('/chat', async (req, res) => {
@@ -85,11 +113,7 @@ chatRouter.post('/chat', async (req, res) => {
             }
         }));
 
-        // Initialize chat history if not present
-        if (!req.session.chatHistory) {
-            req.session.chatHistory = [];
-        }
-        const history = req.session.chatHistory;
+
 
         // Add user question
         history.push({
