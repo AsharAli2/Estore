@@ -51,16 +51,17 @@ const server = new McpServer({
     name: "example-server",
     version: "1.0.0",
 });
+const CategoryEnum = z.enum(["Phone", "Headphone", "Camera", "Laptop"]);
 
 
 server.tool(
-    'findProducts',
-    'Find products by optional filters (name, description, brand, category, price, sold, rating)',
+    'getProducts',
+    'Get all the products from the database',
     {
         name: z.string().optional(),
         description: z.string().optional(),
         Brand: z.string().optional(),    // ← uppercase
-        Category: z.string().optional(),    // ← uppercase
+        Category: CategoryEnum.optional(),    // ← uppercase
         minPrice: z.number().optional(),
         maxPrice: z.number().optional(),
         minSold: z.number().optional(),
@@ -72,12 +73,14 @@ server.tool(
         const textTerms = [];
         if (args.name) textTerms.push(args.name);
         if (args.description) textTerms.push(args.description);
-        if (args.Category) textTerms.push(args.Category);
 
         let useTextSearch = false;
         if (textTerms.length) {
             filter.$text = { $search: textTerms.join(" ") };
             useTextSearch = true;
+        }
+        if (args.Category) {
+            filter.Category = { $regex: new RegExp(`${args.Category}`, "i") };
         }
 
         if (args.Brand) filter.Brand = args.Brand;
@@ -88,6 +91,7 @@ server.tool(
         }
         if (args.minSold) filter.sold = { $gte: args.minSold };
         if (args.minRating) filter.averageRating = { $gte: args.minRating };
+
 
         let query = ProductModel.find(filter);
 
@@ -109,6 +113,8 @@ server.tool(
             type: 'text',
             text: JSON.stringify(products)
         }];
+        console.log(items);
+
 
         return { content: items };
     }
