@@ -41,7 +41,7 @@ Your tasks:
 
 5. You may also suggest:
     - Visiting the product page: 
-      <a href="http://localhost:5173/Product/{_id}">View Product</a>
+      <a href="https://estore-frontend-jade.vercel.app/Product/{_id}">View Product</a>
     - Adding to cart.
 
 6. Be concise, friendly, and helpful.
