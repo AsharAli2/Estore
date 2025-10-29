@@ -6,6 +6,7 @@ const prodschema = mongoose.Schema({
     description: String,
     Brand: String,
     Category: String,
+    Embeddings:Array,
     quantity: Number,
     averageRating: {
         type: Number,

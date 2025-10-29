@@ -16,6 +16,7 @@ import { z } from "zod";
 import bodyParser from "body-parser";
 import { chatRouter } from "./routes/chatbot.js";
 import { ProductModel } from "./models/ProductModel.js";
+import { chatRouter_V2 } from "./routes/chatbot_V2.js";
 
 config();
 
@@ -38,6 +39,7 @@ console.log(process.env.client_url);
 // Routers
 app.use("/api/user", router);
 app.use("/api/mcp", chatRouter);
+app.use("/api",chatRouter_V2);
 app.use("/api/products", productrouter);
 app.use("/api/order", orderRouter);
 app.use("/api/dashboard", dashRouter);
