@@ -43,21 +43,21 @@ const updatedProduct = await ProductModel.findByIdAndUpdate(
 })
 
 
-chatRouter_V2.post('/Chat', protect, async (req, res) => {
-        const { query } = req.body;
-try {
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-   model: "text-embedding-004", // 768 dimensions
-      taskType: TaskType.RETRIEVAL_DOCUMENT,
-      title: "Document title",
-      apiKey:process.env.GEMINI_API_KEY
-    });
+// chatRouter_V2.post('/Chat', protect, async (req, res) => {
+//         const { query } = req.body;
+// try {
+//     const embeddings = new GoogleGenerativeAIEmbeddings({
+//    model: "text-embedding-004", // 768 dimensions
+//       taskType: TaskType.RETRIEVAL_DOCUMENT,
+//       title: "Document title",
+//       apiKey:process.env.GEMINI_API_KEY
+//     });
     
-} catch (error) {
-    console.error(error);
-    res.status(500).send({ message: "Failed to chat" });
-}
+// } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Failed to chat" });
+// }
 
-})
+// })
 
 export { chatRouter_V2 }
