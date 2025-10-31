@@ -13,16 +13,26 @@ chatRouter_V2.post('/prodEmbedding', async (req, res) => {
         
 try {
     const docs = await ProductModel.where('Embeddings').size(0).exec();
-Array.isArray(docs)
-console.log('documents with 0 tags', docs);
-    
-// const embeddings = new GoogleGenerativeAIEmbeddings({
-//       model: "text-embedding-004", // 768 dimensions
-//       taskType: TaskType.RETRIEVAL_DOCUMENT,
-//       title: "Document title",
-//     });
+
+    docs.map(async(item,key)=>{
+
+    const embeddings = new GoogleGenerativeAIEmbeddings({
+      model: "text-embedding-004", // 768 dimensions
+      taskType: TaskType.RETRIEVAL_DOCUMENT,
+      title: "Document title",
+      apiKey:process.env.GEMINI_API_KEY
+    });
+
+const prodembedding=await embeddings.embedQuery(JSON.stringify(docs[key]));
+const updatedProduct = await ProductModel.findByIdAndUpdate(
+        item._id,
+        { Embeddings: prodembedding },
+    );
+
+    })
+
   res.status(201).send({
-            message: " successfully",
+            message: `successfully created ${docs.length} product embeddings`,
            
         });
 
@@ -33,19 +43,21 @@ console.log('documents with 0 tags', docs);
 })
 
 
-// chatRouter_V2.post('/Chat', protect, async (req, res) => {
-//         const { query } = req.body;
-// try {
-//     const embeddings = new GoogleGenerativeAIEmbeddings({
-//       model: "text-embedding-004", // 768 dimensions
-//       taskType: TaskType.RETRIEVAL_DOCUMENT,
-//       title: "Document title",
-//     });
+chatRouter_V2.post('/Chat', protect, async (req, res) => {
+        const { query } = req.body;
+try {
+    const embeddings = new GoogleGenerativeAIEmbeddings({
+   model: "text-embedding-004", // 768 dimensions
+      taskType: TaskType.RETRIEVAL_DOCUMENT,
+      title: "Document title",
+      apiKey:process.env.GEMINI_API_KEY
+    });
     
-// } catch (error) {
-    
-// }
+} catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Failed to chat" });
+}
 
-// })
+})
 
 export { chatRouter_V2 }
