@@ -30,6 +30,8 @@ prodschema.index(
         } }
 );
 
+
+
 const ProductModel = mongoose.model("Product", prodschema)
 
 export { ProductModel }
