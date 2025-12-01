@@ -173,6 +173,5 @@ return  res.status(201).send({
 }
 
 })
-})
 
 export { chatRouter_V2 }
