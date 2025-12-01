@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { OrderModel } from '../models/OrderModel.js';
 import { ProductModel } from '../models/ProductModel.js';
 import { UserModel } from '../models/user.js';
@@ -67,6 +68,7 @@ const history = [];
 
 const chatRouter_V2 = express.Router();
 
+// Generate and store product embeddings
 // Generate and store product embeddings
 chatRouter_V2.post('/prodEmbedding', async (req, res) => {
         
@@ -170,6 +172,7 @@ return  res.status(201).send({
     res.status(500).send({ message: "Failed to chat" });
 }
 
+})
 })
 
 export { chatRouter_V2 }
