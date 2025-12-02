@@ -29,12 +29,11 @@ mongoose.connect(process.env.mongoURL)
 
 // Middleware
 app.use(cors({
-    origin: process.env.client_url,
+    origin: process.env.CLIENT_URL,
 }));
 app.use(bodyParser.json());
 app.use(express.json());
 
-console.log(process.env.client_url);
 
 // Routers
 app.use("/api/user", router);

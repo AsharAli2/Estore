@@ -42,8 +42,6 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
-const pages = ["Phone", "Laptops", "Headphones", "Camera", "Monitors"];
-
 function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(undefined);
@@ -123,19 +121,7 @@ function Navbar() {
       }}
       role="presentation"
     >
-      {pages.map((page) => (
-        <ListItem
-          button
-          key={page}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/Category/${page}`);
-            setDrawerOpen(false);
-          }}
-        >
-          <ListItemText primary={page} />
-        </ListItem>
-      ))}
+      {/* Categories removed from drawer */}
 
       {user ? (
         <Box sx={{ position: "absolute", bottom: 0, width: "100%", p: 1 }}>
@@ -351,25 +337,7 @@ function Navbar() {
               <StoreLogo />
             </Typography>
           </Divider>
-          <Divider sx={{ display: { xs: "none", md: "flex" } }}>
-            <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
-              {pages.map((page) => (
-                <Button
-                  key={page}
-                  onClick={handleCloseNavMenu}
-                  sx={{ my: 2, color: "black", display: "block" }}
-                >
-                  <Typography
-                    textAlign="center"
-                    sx={{ color: "black" }}
-                    onClick={() => navigate(`/Category/${page}`)}
-                  >
-                    {page}
-                  </Typography>
-                </Button>
-              ))}
-            </Box>
-          </Divider>
+          {/* Category buttons removed */}
           <div>
             <Box
               sx={{

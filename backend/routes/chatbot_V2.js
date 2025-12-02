@@ -1,7 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenAI } from '@google/genai';
-import { GoogleGenAI } from '@google/genai';
 import { OrderModel } from '../models/OrderModel.js';
 import { ProductModel } from '../models/ProductModel.js';
 import { UserModel } from '../models/user.js';

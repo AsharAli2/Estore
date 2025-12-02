@@ -1,8 +1,6 @@
-import React from "react";
 import "./App.css";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-const Homepage = lazy(() => import("./Pages/Home/Homepage"));
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 const Product = lazy(() => import("./Pages/Product/Product"));
 import { CartContainer } from "./context/Cartcontext";
 const Cart = lazy(() => import("./Pages/Cart/Cart"));
@@ -17,7 +15,7 @@ const Editprod = lazy(() => import("./Pages/EditProduct/Editprod"));
 const RegisterPage = lazy(() => import("./Pages/Register/RegisterPage"));
 
 const History = lazy(() => import("./Pages/history/History"));
-const Productall = lazy(() => import("./Pages/Home/Productall"));
+const ProductsList = lazy(() => import("./Pages/Products/ProductsList"));
 const Dashboard = lazy(() => import("./Pages/Admin/Dashboard"));
 const Users = lazy(() => import("./Pages/Admin/Users"));
 const Products = lazy(() => import("./Pages/Admin/Products"));
@@ -34,7 +32,9 @@ function App() {
             <Suspense>
               <ScrolltoTop />
               <Routes>
-                <Route exact path="/" element={<Homepage />} />
+                {/* Redirect root to products listing */}
+                <Route path="/" element={<Navigate to="/Products" replace />} />
+                {/* Root homepage route removed as requested */}
                 <Route path="/UserHistory/:userName" element={<History />} />
                 <Route path="/Reviews/:userName" element={<UserReviews />} />
                 <Route path="/Product/:id" element={<Product />} />
@@ -43,7 +43,7 @@ function App() {
                 <Route path="/addproduct" element={<Addprod />} />
                 <Route path="/Login" element={<LoginPage />} />
                 <Route path="/Signup" element={<RegisterPage />} />
-                <Route path="/Category/:name" element={<Productall />} />
+                <Route path="/Products" element={<ProductsList />} />
 
                 <Route path="/Admin/Dashboard" element={<Dashboard />} />
                 <Route path="/Admin/Users" element={<Users />} />
