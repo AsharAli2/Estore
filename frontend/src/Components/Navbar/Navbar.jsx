@@ -21,7 +21,7 @@ import { deepOrange } from "@mui/material/colors";
 import { Divider, Paper, Popover } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
 import SearchIcon from "@mui/icons-material/Search";
-import SearchModal from "./SearchModal";
+// import SearchModal from "./SearchModal";
 import StoreLogo from "./Logo";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -41,8 +41,6 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
     padding: "0 4px",
   },
 }));
-
-const pages = ["Phone", "Laptops", "Headphones", "Camera", "Monitors"];
 
 function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
@@ -102,7 +100,7 @@ function Navbar() {
     location.pathname === "/addproduct" ||
     location.pathname === "/Product/edit/:id" ||
     location.pathname === "/Login" ||
-    location.pathname === "/Signup" 
+    location.pathname === "/Signup"
   ) {
     return null;
   }
@@ -123,19 +121,7 @@ function Navbar() {
       }}
       role="presentation"
     >
-      {pages.map((page) => (
-        <ListItem
-          button
-          key={page}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/Category/${page}`);
-            setDrawerOpen(false);
-          }}
-        >
-          <ListItemText primary={page} />
-        </ListItem>
-      ))}
+      {/* Categories removed from drawer */}
 
       {user ? (
         <Box sx={{ position: "absolute", bottom: 0, width: "100%", p: 1 }}>
@@ -351,25 +337,7 @@ function Navbar() {
               <StoreLogo />
             </Typography>
           </Divider>
-          <Divider sx={{ display: { xs: "none", md: "flex" } }}>
-            <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
-              {pages.map((page) => (
-                <Button
-                  key={page}
-                  onClick={handleCloseNavMenu}
-                  sx={{ my: 2, color: "black", display: "block" }}
-                >
-                  <Typography
-                    textAlign="center"
-                    sx={{ color: "black" }}
-                    onClick={() => navigate(`/Category/${page}`)}
-                  >
-                    {page}
-                  </Typography>
-                </Button>
-              ))}
-            </Box>
-          </Divider>
+          {/* Category buttons removed */}
           <div>
             <Box
               sx={{
@@ -431,7 +399,7 @@ function Navbar() {
           </div>
         </Toolbar>
       </Container>
-      <SearchModal open={open} setOpen={setOpen} />
+      {/* <SearchModal open={open} setOpen={setOpen} /> */}
       <Menu
         sx={{ mt: "45px" }}
         id="menu-appbar"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -7,9 +7,14 @@ import {
   TextField,
   Box,
   Typography,
-  Link,
   CircularProgress,
+  Container,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Stack,
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { API_URL } from "../../../utils/constant";
 
 const RegisterPage = () => {
@@ -19,6 +24,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [loading, setloading] = useState(false);
 
@@ -42,144 +48,214 @@ const RegisterPage = () => {
     const data = await response.json();
     if (data.user) {
       setloading(false);
-      navigate("/login");
+      setOpenSnackbar(true);
+      setTimeout(() => navigate("/Login"), 2000);
     }
   };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const isFormValid = userName && password && email && phone && address;
 
   return (
     <Box
       sx={{
+        minHeight: "100vh",
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
-        height: "100vh",
-        backgroundColor: "#0D0D0D",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+        padding: 2,
       }}
     >
-      <Box
-        sx={{
-          width: 350,
-          backgroundColor: "#1A1A1A",
-          padding: 3,
-          borderRadius: 2,
-          boxShadow: "0px 0px 10px rgba(255, 255, 255, 0.1)",
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h5" color="white" fontWeight="bold">
-          Create Account
-        </Typography>
-        <Typography variant="body2" color="gray" mb={2}>
-          Sign up to start shopping
-        </Typography>
-
-        <TextField
-          fullWidth
-          variant="outlined"
-          name="userName"
-          placeholder="Username"
-          value={userName}
-          onChange={handleChange}
+      <Container maxWidth="sm">
+        <Paper
+          elevation={3}
           sx={{
-            input: { color: "white" },
-            mb: 1,
-            backgroundColor: "#333",
-            borderRadius: 2,
-          }}
-        />
-        <TextField
-          fullWidth
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={password}
-          onChange={handleChange}
-          sx={{
-            input: { color: "white" },
-            mb: 1,
-            backgroundColor: "#333",
-            borderRadius: 2,
-          }}
-        />
-        <TextField
-          fullWidth
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={email}
-          onChange={handleChange}
-          sx={{
-            input: { color: "white" },
-            mb: 1,
-            backgroundColor: "#333",
-            borderRadius: 2,
-          }}
-        />
-        <TextField
-          fullWidth
-          type="tel"
-          name="phone"
-          placeholder="Phone"
-          value={phone}
-          onChange={handleChange}
-          sx={{
-            input: { color: "white" },
-            mb: 1,
-            backgroundColor: "#333",
-            borderRadius: 2,
-          }}
-        />
-        <TextField
-          fullWidth
-          name="address"
-          placeholder="Address"
-          value={address}
-          onChange={handleChange}
-          sx={{
-            input: { color: "white" },
-            mb: 2,
-            backgroundColor: "#333",
-            borderRadius: 2,
-          }}
-        />
-
-        <Button
-          fullWidth
-          variant="outlined"
-          sx={{ padding: 1.5, borderRadius: 2 }}
-          onClick={handleSubmit}
-          disabled={!userName || !password || !email || !phone || !address}
-        >
-          {loading ? <CircularProgress /> : "Register"}
-        </Button>
-
-        <Typography color="gray" mt={2}>
-          Already have an account?
-        </Typography>
-        <Link
-          onClick={() => navigate("/Login")}
-          sx={{
-            display: "block",
-            color: "#6e98c4",
-            cursor: "pointer",
-            mt: 1,
-            textDecoration: "none",
+            padding: 4,
+            borderRadius: 3,
+            textAlign: "center",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
           }}
         >
-          Sign In
-        </Link>
+          {/* Header */}
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 800,
+                color: "#2c3e50",
+                mb: 1,
+              }}
+            >
+              Estore
+            </Typography>
+            <Typography variant="body1" color="#7f8c8d">
+              Create your account to start shopping
+            </Typography>
+          </Box>
 
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={2000}
-          onClose={() => setOpenSnackbar(false)}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert severity="success" variant="filled" sx={{ width: "100%" }}>
-            User Successfully Registered
-          </Alert>
-        </Snackbar>
-      </Box>
+          <Stack spacing={2}>
+            {/* Username */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              name="userName"
+              placeholder="Username"
+              value={userName}
+              onChange={handleChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            {/* Email */}
+            <TextField
+              fullWidth
+              type="email"
+              name="email"
+              placeholder="Email address"
+              value={email}
+              onChange={handleChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            {/* Phone */}
+            <TextField
+              fullWidth
+              type="tel"
+              name="phone"
+              placeholder="Phone number"
+              value={phone}
+              onChange={handleChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            {/* Address */}
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              name="address"
+              placeholder="Delivery address"
+              value={address}
+              onChange={handleChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+
+            {/* Password */}
+            <TextField
+              fullWidth
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={password}
+              onChange={handleChange}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                },
+              }}
+            />
+          </Stack>
+
+          {/* Register Button */}
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{
+              mt: 3,
+              padding: "12px",
+              borderRadius: 2,
+              fontWeight: "bold",
+              fontSize: "1rem",
+              textTransform: "none",
+              backgroundColor: "#3498db",
+              color: "#ffffff",
+              "&:hover": {
+                backgroundColor: "#2980b9",
+              },
+              "&:disabled": {
+                backgroundColor: "rgba(0, 0, 0, 0.12)",
+              },
+            }}
+            onClick={handleSubmit}
+            disabled={!isFormValid || loading}
+          >
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: "white" }} />
+            ) : (
+              "Create Account"
+            )}
+          </Button>
+
+          {/* Sign In Link */}
+          <Typography color="#7f8c8d" sx={{ mt: 2.5, mb: 1 }}>
+            Already have an account?
+          </Typography>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => navigate("/Login")}
+            sx={{
+              padding: "10px",
+              borderRadius: 2,
+              fontWeight: "bold",
+              textTransform: "none",
+              borderColor: "#3498db",
+              color: "#3498db",
+              "&:hover": {
+                backgroundColor: "rgba(52, 152, 219, 0.08)",
+                borderColor: "#3498db",
+              },
+            }}
+          >
+            Sign In
+          </Button>
+
+          {/* Success Snackbar */}
+          <Snackbar
+            open={openSnackbar}
+            autoHideDuration={3000}
+            onClose={() => setOpenSnackbar(false)}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert severity="success" variant="filled" sx={{ width: "100%", borderRadius: 2 }}>
+              Account created successfully! Redirecting to login...
+            </Alert>
+          </Snackbar>
+        </Paper>
+      </Container>
     </Box>
   );
 };

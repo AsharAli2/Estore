@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router";
 import cartcontext from "../../context/Cartcontext";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -18,6 +18,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
+import Loading from "../../Components/Loading/Loading";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
@@ -25,8 +26,9 @@ export default function Cart() {
   const navigate = useNavigate();
   const CartItem = useContext(cartcontext);
   let { cartitem, removecart, setcartitem } = CartItem;
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [quantities, setQuantities] = useState(
     cartitem.reduce((acc, item) => ({ ...acc, [item.id]: 1 }), {})
   );
@@ -34,11 +36,19 @@ export default function Cart() {
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    if (!user) {
-      navigate("/Login");
-    }
-    // Simulate a delay for user check
-  }, []);
+    // simulate check to show friendly loading while verifying user
+    const check = async () => {
+      setChecking(true);
+      // await new Promise((r) => setTimeout(r, 250));
+      if (!user) {
+        setChecking(false);
+        navigate("/Login");
+        return;
+      }
+      setChecking(false);
+    };
+    check();
+  }, [navigate, user]);
   // Update quantity for a specific item
   const updateQuantity = (id, value) => {
     setQuantities((prev) => ({
@@ -48,8 +58,8 @@ export default function Cart() {
   };
 
   // Calculate total price based on quantity
-  const totalPrice = cartitem.reduce(
-    (sum, item) => sum + item.price * (quantities[item.id] || 1),
+  var totalPrice = cartitem.reduce(
+    (sum, item) => sum + item.price * (quantities[item._id] || 1),
     0
   );
 
@@ -106,6 +116,9 @@ export default function Cart() {
       </Box>
     );
   }
+  if (checking) {
+    return <Loading open={true} text="Checking account..." />;
+  }
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {cartitem.length ? (
@@ -147,7 +160,7 @@ export default function Cart() {
                   <Button
                     size="small"
                     sx={{ mt: 1, color: "red" }}
-                    onClick={() => removecart(item.id)}
+                    onClick={() => removecart(item.name)}
                   >
                     Remove
                   </Button>

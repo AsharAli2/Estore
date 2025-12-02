@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   IconButton,
@@ -8,10 +8,13 @@ import {
   Slide,
   CircularProgress,
   Fade,
+  Divider,
+  Chip,
 } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { API_URL } from "../../../utils/constant";
 import DOMPurify from "dompurify";
 import { useLocation } from "react-router";
@@ -35,20 +38,21 @@ const Chatbot = () => {
   const [chatHistory, setChatHistory] = useState([
     {
       role: "ai",
-      text: `Hello! 👋 How can we help you with your tech accessories today?
-    <br /><br />
-    Here are some things you can ask:
-    <ul>
-      <li>🛍️ Show me the latest wireless earbuds</li>
-      <li>🔍 Compare iPhone 13 and Samsung S22</li>
-      <li>📈 What are the best-rated gaming keyboards?</li>
-      <li>💡 Suggest a laptop under ₹50,000</li>
-    </ul>`,
+      text: `Hello! 👋 I'm your shopping assistant. How can I help you today?`,
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const toggleChatbot = () => setIsOpen(!isOpen);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]);
 
   const handlechat = async () => {
     const trimmed = inputValue.trim();
@@ -60,25 +64,93 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch(`${API_URL}/mcp/chat`, {
+      // Call VectorSearch endpoint on backend which returns LLM result in `data`
+      const response = await fetch(`${API_URL}/VectorSearch`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ query: trimmed }),
       });
 
-      const data = await response.json();
-      const aiText = data.AIresponse;
+      const json = await response.json();
+      // backend returns the LLM text in different keys in various places; try common ones
+      const raw = json.data || json.AIresponse || json.AIresponseText || "";
 
+      // Helper: extract JSON payload inside ```json ... ``` code fences, or parse plain JSON
+      const extractJSONFromFence = (text) => {
+        if (!text) return null;
+        // find code fence
+        const fenceMatch = text.match(/```\s*json\s*([\s\S]*?)```/i);
+        const inner = fenceMatch ? fenceMatch[1] : text;
+        try {
+          return JSON.parse(inner.trim());
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const parsed = extractJSONFromFence(raw);
+
+      let finalHtml = "";
+
+      if (parsed && typeof parsed === "object") {
+        // 1. Summary
+        const summary = parsed.summary || "";
+        finalHtml += `<div style="margin-bottom:12px; color:#333; font-size:0.95rem;"><strong>${DOMPurify.sanitize(
+          summary
+        )}</strong></div>`;
+
+        // 2. Product list with name: reason (as bullet points)
+        if (Array.isArray(parsed.products) && parsed.products.length) {
+          finalHtml += `<div style="margin-bottom:12px;">`;
+          parsed.products.forEach((p) => {
+            const name = DOMPurify.sanitize(p.name || "");
+            const reason = DOMPurify.sanitize(p.reason || "");
+            finalHtml += `<div style="margin-bottom:6px; font-size:0.9rem; color:#333;"><strong>• ${name}:</strong> ${reason}</div>`;
+          });
+          finalHtml += `</div>`;
+        }
+
+        // 3. Scrollable product images in a row
+        if (Array.isArray(parsed.products) && parsed.products.length) {
+          finalHtml += `
+            <div style="margin-bottom:12px; overflow-x:auto; padding:8px 0; display:flex; gap:12px; scroll-behavior:smooth;">
+          `;
+          parsed.products.forEach((p) => {
+            const name = DOMPurify.sanitize(p.name || "");
+            const image = DOMPurify.sanitize(p.image || "");
+            const link = DOMPurify.sanitize(p.link || "#");
+
+            finalHtml += `
+              <a href="${link}" target="_blank" rel="noreferrer noopener" style="flex-shrink:0;">
+                <img src="${image}" alt="${name}" title="${name}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; cursor:pointer; transition:transform 0.2s; border:2px solid #f0f0f0;" />
+              </a>
+            `;
+          });
+          finalHtml += `</div>`;
+        }
+
+        // 4. CTA message
+        if (parsed.cta_message) {
+          finalHtml += `<div style="margin-top:8px; color:#555; font-size:0.85rem; font-style:italic;">${DOMPurify.sanitize(
+            parsed.cta_message
+          )}</div>`;
+        }
+      } else {
+        // fallback: show raw text as sanitized HTML
+        finalHtml = DOMPurify.sanitize(
+          raw || "Sorry, I couldn't understand the response."
+        );
+      }
+
+      // animate typing: push empty ai message then fill
       let currentText = "";
       const aiMessage = { role: "ai", text: "" };
-
-      // Add empty AI message first
       setChatHistory((prev) => [...prev, aiMessage]);
 
-      // Type character by character
-      aiText.split("").forEach((char, index) => {
+      // render HTML character by character (keeps existing UX)
+      finalHtml.split("").forEach((char, index) => {
         setTimeout(() => {
           currentText += char;
           setChatHistory((prev) => {
@@ -86,10 +158,9 @@ const Chatbot = () => {
             updated[updated.length - 1] = { ...aiMessage, text: currentText };
             return updated;
           });
-        }, index * 10); // 30ms per character
+        }, index * 4);
       });
 
-      // Stop typing animation after full message is shown
       setIsTyping(false);
     } catch (error) {
       console.error("Error:", error);
@@ -116,37 +187,63 @@ const Chatbot = () => {
         alignItems: "flex-end",
       }}
     >
+      {/* Floating Action Button */}
       <IconButton
         onClick={toggleChatbot}
         sx={{
-          backgroundColor: "#1976d2",
+          backgroundColor: isOpen ? "#ef5350" : "#667eea",
           color: "#fff",
-          "&:hover": { backgroundColor: "#1565c0" },
-          boxShadow: 4,
+          width: 56,
+          height: 56,
+          "&:hover": {
+            backgroundColor: isOpen ? "#e53935" : "#5568d3",
+            transform: "scale(1.1)",
+          },
+          transition: "all 0.3s ease",
+          boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
         }}
       >
         {isOpen ? <CloseIcon /> : <ChatIcon />}
       </IconButton>
 
+      {/* Chat Window */}
       <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit>
         <Paper
-          elevation={6}
+          elevation={10}
           sx={{
             mt: 1,
-            width: 320,
-            height: 480,
+            width: { xs: 320, sm: 380 },
+            height: 520,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
             borderRadius: 3,
             overflow: "hidden",
+            boxShadow: "0 5px 40px rgba(0, 0, 0, 0.16)",
           }}
         >
-          <Box sx={{ p: 2, bgcolor: "#1976d2", color: "#fff" }}>
-            <Typography variant="h6">Chat Support</Typography>
-            <Typography variant="body2">Ask us anything!</Typography>
+          {/* Header */}
+          <Box
+            sx={{
+              p: 2,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <SmartToyIcon />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                Estore Assistant
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Always here to help
+              </Typography>
+            </Box>
           </Box>
 
+          {/* Messages Container */}
           <Box
             sx={{
               flexGrow: 1,
@@ -154,8 +251,18 @@ const Chatbot = () => {
               overflowY: "auto",
               display: "flex",
               flexDirection: "column",
-              gap: 1,
-              bgcolor: "#f5f5f5",
+              gap: 1.5,
+              backgroundColor: "#fafafa",
+              "&::-webkit-scrollbar": {
+                width: "6px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: "#f1f1f1",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: "#ccc",
+                borderRadius: "3px",
+              },
             }}
           >
             {chatHistory.map((msg, index) => (
@@ -163,56 +270,72 @@ const Chatbot = () => {
                 <Box
                   sx={{
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                    bgcolor: msg.role === "user" ? "#e3f2fd" : "#fff",
-                    p: 1.2,
-                    px: 2,
-                    borderRadius: 3,
-                    maxWidth: "80%",
-                    boxShadow: 1,
+                    maxWidth: "85%",
                   }}
                 >
-                  {/* <Typography variant="body2">{msg.text}</Typography> */}
-                  <Typography
-                    variant="body2"
-                    component="div"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(msg.text),
+                  <Paper
+                    sx={{
+                      p: 1.5,
+                      px: 2,
+                      borderRadius: 2.5,
+                      backgroundColor:
+                        msg.role === "user" ? "#667eea" : "#ffffff",
+                      color: msg.role === "user" ? "#fff" : "#000",
+                      boxShadow:
+                        msg.role === "user"
+                          ? "0 2px 8px rgba(102, 126, 234, 0.2)"
+                          : "0 1px 3px rgba(0, 0, 0, 0.1)",
                     }}
-                  />
+                  >
+                    <Typography
+                      variant="body2"
+                      component="div"
+                      sx={{ lineHeight: 1.6 }}
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(msg.text),
+                      }}
+                    />
+                  </Paper>
                 </Box>
               </Fade>
             ))}
 
             {isTyping && (
               <Fade in>
-                <Box
-                  sx={{
-                    alignSelf: "flex-start",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    bgcolor: "#fff",
-                    px: 2,
-                    py: 1,
-                    borderRadius: 3,
-                    boxShadow: 1,
-                    maxWidth: "80%",
-                    fontStyle: "italic",
-                  }}
-                >
-                  <CircularProgress size={16} thickness={4} />
-                  <Typography variant="body2">AI is typing...</Typography>
+                <Box sx={{ alignSelf: "flex-start" }}>
+                  <Paper
+                    sx={{
+                      p: 1.5,
+                      px: 2,
+                      borderRadius: 2.5,
+                      backgroundColor: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <CircularProgress size={16} thickness={4} />
+                    <Typography variant="caption" color="text.secondary">
+                      Typing...
+                    </Typography>
+                  </Paper>
                 </Box>
               </Fade>
             )}
+            <div ref={messagesEndRef} />
           </Box>
 
+          <Divider />
+
+          {/* Input Area */}
           <Box
             sx={{
-              p: 1,
+              p: 1.5,
               display: "flex",
-              alignItems: "center",
-              borderTop: "1px solid #eee",
+              alignItems: "flex-end",
+              gap: 1,
+              backgroundColor: "#fff",
             }}
           >
             <TextField
@@ -224,12 +347,30 @@ const Chatbot = () => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlechat()}
               disabled={isTyping}
+              multiline
+              maxRows={3}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  fontSize: "0.9rem",
+                },
+              }}
             />
             <IconButton
               color="primary"
-              sx={{ ml: 1 }}
+              sx={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "#fff",
+                "&:hover": {
+                  background:
+                    "linear-gradient(135deg, #5568d3 0%, #6a3f99 100%)",
+                },
+                "&:disabled": {
+                  background: "rgba(0, 0, 0, 0.12)",
+                },
+              }}
               onClick={handlechat}
-              disabled={isTyping}
+              disabled={isTyping || !inputValue.trim()}
             >
               <SendIcon />
             </IconButton>

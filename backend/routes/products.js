@@ -8,9 +8,76 @@ import { Review } from "../models/Review.js";
 
 const productrouter = express.Router();
 
+// Combined products endpoint supporting pagination, category, search and sort
+productrouter.get('/', async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page || '1', 10));
+        const pagesize = Math.max(1, parseInt(req.query.pagesize || '10', 10));
+        const category = req.query.category;
+        const search = req.query.search;
+        const sort = req.query.sort; // e.g. price_asc, price_desc, rating_desc
+        const brand = req.query.brand; // single brand or comma separated
+        const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : undefined;
+        const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : undefined;
+        const minRating = req.query.minRating ? parseFloat(req.query.minRating) : undefined;
+
+        const filter = {};
+        if (category) {
+            filter.Category = category;
+        }
+
+        let useTextScore = false;
+        if (search) {
+            const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.name = { $regex: new RegExp(escaped, 'i') };
+        }
+
+        if (brand) {
+            const brands = String(brand).split(',').map(b => b.trim()).filter(Boolean);
+            if (brands.length === 1) filter.Brand = { $regex: new RegExp(`${brands[0]}`, 'i') };
+            else filter.Brand = { $in: brands.map(b => new RegExp(b, 'i')) };
+        }
+
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            filter.price = {};
+            if (minPrice !== undefined) filter.price.$gte = minPrice;
+            if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+        }
+
+        if (minRating !== undefined) {
+            filter.averageRating = { $gte: minRating };
+        }
+
+        // total count for pagination
+        const total = await ProductModel.countDocuments(filter);
+
+        // build sort
+        let query = ProductModel.find(filter).select('-Embeddings');
+        if (useTextScore && !sort) {
+            query = query.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' } });
+        } else if (sort === 'price_asc') {
+            query = query.sort({ price: 1 });
+        } else if (sort === 'price_desc') {
+            query = query.sort({ price: -1 });
+        } else if (sort === 'rating_desc') {
+            query = query.sort({ averageRating: -1 });
+        } else {
+            // default sort by newest (Mongo _id contains creation time)
+            query = query.sort({ _id: -1 });
+        }
+
+        const products = await query.skip((page - 1) * pagesize).limit(pagesize).exec();
+
+        res.json({ products, count: total, page, pagesize });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch products' });
+    }
+});
+
 productrouter.get('/allproducts', async (req, res) => {
 
-    const allproducts = await ProductModel.find({})
+    const allproducts = await ProductModel.find({}).select('-Embeddings');
     if (allproducts.length) {
         res.send({ Product: allproducts })
     }
@@ -22,7 +89,7 @@ productrouter.get('/allproducts', async (req, res) => {
 
 
 productrouter.post('/review/:id', protect, async (req, res) => {
-   
+
 
     try {
         const { review, rating, userName } = req.body;
