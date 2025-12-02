@@ -39,10 +39,10 @@ export default function Cart() {
     // simulate check to show friendly loading while verifying user
     const check = async () => {
       setChecking(true);
-      await new Promise((r) => setTimeout(r, 250));
+      // await new Promise((r) => setTimeout(r, 250));
       if (!user) {
         setChecking(false);
-        navigate('/Login');
+        navigate("/Login");
         return;
       }
       setChecking(false);
@@ -58,8 +58,8 @@ export default function Cart() {
   };
 
   // Calculate total price based on quantity
-  const totalPrice = cartitem.reduce(
-    (sum, item) => sum + item.price * (quantities[item.id] || 1),
+  var totalPrice = cartitem.reduce(
+    (sum, item) => sum + item.price * (quantities[item._id] || 1),
     0
   );
 
@@ -160,7 +160,7 @@ export default function Cart() {
                   <Button
                     size="small"
                     sx={{ mt: 1, color: "red" }}
-                    onClick={() => removecart(item.id)}
+                    onClick={() => removecart(item.name)}
                   >
                     Remove
                   </Button>

@@ -64,23 +64,93 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch(`${API_URL}/mcp/chat`, {
+      // Call VectorSearch endpoint on backend which returns LLM result in `data`
+      const response = await fetch(`${API_URL}/VectorSearch`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ query: trimmed }),
       });
 
-      const data = await response.json();
-      const aiText = data.AIresponse;
+      const json = await response.json();
+      // backend returns the LLM text in different keys in various places; try common ones
+      const raw = json.data || json.AIresponse || json.AIresponseText || "";
 
+      // Helper: extract JSON payload inside ```json ... ``` code fences, or parse plain JSON
+      const extractJSONFromFence = (text) => {
+        if (!text) return null;
+        // find code fence
+        const fenceMatch = text.match(/```\s*json\s*([\s\S]*?)```/i);
+        const inner = fenceMatch ? fenceMatch[1] : text;
+        try {
+          return JSON.parse(inner.trim());
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const parsed = extractJSONFromFence(raw);
+
+      let finalHtml = "";
+
+      if (parsed && typeof parsed === "object") {
+        // 1. Summary
+        const summary = parsed.summary || "";
+        finalHtml += `<div style="margin-bottom:12px; color:#333; font-size:0.95rem;"><strong>${DOMPurify.sanitize(
+          summary
+        )}</strong></div>`;
+
+        // 2. Product list with name: reason (as bullet points)
+        if (Array.isArray(parsed.products) && parsed.products.length) {
+          finalHtml += `<div style="margin-bottom:12px;">`;
+          parsed.products.forEach((p) => {
+            const name = DOMPurify.sanitize(p.name || "");
+            const reason = DOMPurify.sanitize(p.reason || "");
+            finalHtml += `<div style="margin-bottom:6px; font-size:0.9rem; color:#333;"><strong>• ${name}:</strong> ${reason}</div>`;
+          });
+          finalHtml += `</div>`;
+        }
+
+        // 3. Scrollable product images in a row
+        if (Array.isArray(parsed.products) && parsed.products.length) {
+          finalHtml += `
+            <div style="margin-bottom:12px; overflow-x:auto; padding:8px 0; display:flex; gap:12px; scroll-behavior:smooth;">
+          `;
+          parsed.products.forEach((p) => {
+            const name = DOMPurify.sanitize(p.name || "");
+            const image = DOMPurify.sanitize(p.image || "");
+            const link = DOMPurify.sanitize(p.link || "#");
+
+            finalHtml += `
+              <a href="${link}" target="_blank" rel="noreferrer noopener" style="flex-shrink:0;">
+                <img src="${image}" alt="${name}" title="${name}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; cursor:pointer; transition:transform 0.2s; border:2px solid #f0f0f0;" />
+              </a>
+            `;
+          });
+          finalHtml += `</div>`;
+        }
+
+        // 4. CTA message
+        if (parsed.cta_message) {
+          finalHtml += `<div style="margin-top:8px; color:#555; font-size:0.85rem; font-style:italic;">${DOMPurify.sanitize(
+            parsed.cta_message
+          )}</div>`;
+        }
+      } else {
+        // fallback: show raw text as sanitized HTML
+        finalHtml = DOMPurify.sanitize(
+          raw || "Sorry, I couldn't understand the response."
+        );
+      }
+
+      // animate typing: push empty ai message then fill
       let currentText = "";
       const aiMessage = { role: "ai", text: "" };
-
       setChatHistory((prev) => [...prev, aiMessage]);
 
-      aiText.split("").forEach((char, index) => {
+      // render HTML character by character (keeps existing UX)
+      finalHtml.split("").forEach((char, index) => {
         setTimeout(() => {
           currentText += char;
           setChatHistory((prev) => {
@@ -88,7 +158,7 @@ const Chatbot = () => {
             updated[updated.length - 1] = { ...aiMessage, text: currentText };
             return updated;
           });
-        }, index * 10);
+        }, index * 4);
       });
 
       setIsTyping(false);
@@ -211,7 +281,10 @@ const Chatbot = () => {
                       backgroundColor:
                         msg.role === "user" ? "#667eea" : "#ffffff",
                       color: msg.role === "user" ? "#fff" : "#000",
-                      boxShadow: msg.role === "user" ? "0 2px 8px rgba(102, 126, 234, 0.2)" : "0 1px 3px rgba(0, 0, 0, 0.1)",
+                      boxShadow:
+                        msg.role === "user"
+                          ? "0 2px 8px rgba(102, 126, 234, 0.2)"
+                          : "0 1px 3px rgba(0, 0, 0, 0.1)",
                     }}
                   >
                     <Typography
@@ -289,7 +362,8 @@ const Chatbot = () => {
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 color: "#fff",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #5568d3 0%, #6a3f99 100%)",
+                  background:
+                    "linear-gradient(135deg, #5568d3 0%, #6a3f99 100%)",
                 },
                 "&:disabled": {
                   background: "rgba(0, 0, 0, 0.12)",

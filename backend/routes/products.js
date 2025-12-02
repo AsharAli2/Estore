@@ -23,17 +23,13 @@ productrouter.get('/', async (req, res) => {
 
         const filter = {};
         if (category) {
-            // allow partial / case-insensitive match; support multiple categories comma separated
-            const cats = String(category).split(',').map(c => c.trim()).filter(Boolean);
-            if (cats.length === 1) filter.Category = { $regex: new RegExp(`${cats[0]}`, 'i') };
-            else filter.Category = { $in: cats.map(c => new RegExp(c, 'i')) };
+            filter.Category = category;
         }
 
         let useTextScore = false;
         if (search) {
-            // use text search (requires the text index defined on ProductModel)
-            filter.$text = { $search: search };
-            useTextScore = true;
+            const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.name = { $regex: new RegExp(escaped, 'i') };
         }
 
         if (brand) {
@@ -56,7 +52,7 @@ productrouter.get('/', async (req, res) => {
         const total = await ProductModel.countDocuments(filter);
 
         // build sort
-        let query = ProductModel.find(filter);
+        let query = ProductModel.find(filter).select('-Embeddings');
         if (useTextScore && !sort) {
             query = query.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' } });
         } else if (sort === 'price_asc') {
@@ -81,7 +77,7 @@ productrouter.get('/', async (req, res) => {
 
 productrouter.get('/allproducts', async (req, res) => {
 
-    const allproducts = await ProductModel.find({})
+    const allproducts = await ProductModel.find({}).select('-Embeddings');
     if (allproducts.length) {
         res.send({ Product: allproducts })
     }
@@ -93,7 +89,7 @@ productrouter.get('/allproducts', async (req, res) => {
 
 
 productrouter.post('/review/:id', protect, async (req, res) => {
-   
+
 
     try {
         const { review, rating, userName } = req.body;

@@ -21,7 +21,7 @@ import { deepOrange } from "@mui/material/colors";
 import { Divider, Paper, Popover } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
 import SearchIcon from "@mui/icons-material/Search";
-import SearchModal from "./SearchModal";
+// import SearchModal from "./SearchModal";
 import StoreLogo from "./Logo";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -100,7 +100,7 @@ function Navbar() {
     location.pathname === "/addproduct" ||
     location.pathname === "/Product/edit/:id" ||
     location.pathname === "/Login" ||
-    location.pathname === "/Signup" 
+    location.pathname === "/Signup"
   ) {
     return null;
   }
@@ -399,7 +399,7 @@ function Navbar() {
           </div>
         </Toolbar>
       </Container>
-      <SearchModal open={open} setOpen={setOpen} />
+      {/* <SearchModal open={open} setOpen={setOpen} /> */}
       <Menu
         sx={{ mt: "45px" }}
         id="menu-appbar"
