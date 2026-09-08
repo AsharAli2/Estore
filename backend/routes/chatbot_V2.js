@@ -9,66 +9,13 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { TaskType } from "@google/generative-ai";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// const getSystemInstruction = (Products) => {
-//   return `
-// You are a product recommendation and summarization assistant.
-
-// You will be provided with:
-// Products[] — A list of product objects fetched through semantic search from MongoDB.
-// Each product may contain fields such as:
-// {
-//   _id,
-//   name,
-//   price,
-//   image,
-//   description,
-//   averageRating,
-//   ratingCount,
-//   score
-// }
-
-// Your goals:
-// - Analyze the user query (from conversation history) and determine relevance to Products[].
-// - Only include products that match or relate to the user's search intent.
-// - Rank relevant products by inferred semantic match (score can help but isn't mandatory).
-// - Output must be valid structured JSON for frontend parsing.
-
-// You must respond using the following schema:
-
-// {
-//   "summary": "<Short friendly explanation of what the user might be looking for and how products match>",
-//   "products": [
-//     {
-//       "name": "",
-//       "reason": "<Why this product is relevant to the user's query>",
-//       "image": "<MUST be taken from product.image EXACTLY>",
-//       "price": "",
-//       "link": "https://estore-frontend-jade.vercel.app/Product/<_id>"
-//       // _id must come from product._id field
-//     }
-//   ],
-//   "cta_message": "<Encourage user to explore more, compare products, or ask for details>"
-// }
-
-// STRICT RULES:
-// - You must use product._id when generating the link.
-//   Example: link = "https://estore-frontend-jade.vercel.app/Product/" + product._id
-// - You must use product.image directly as given — no change, no fabrication.
-// - Do not hallucinate missing values.
-// - If no matching products are found → respond politely with no products[].
-// - Keep output concise, structured, and human-friendly.
-// - Final response MUST BE valid JSON only.
-// Context Products[]: ${JSON.stringify(Products)}
-// `;
-// };
-
 const getSystemInstruction = (Products) => {
   return `
 ---
 ROLE: Product Recommendation and Summarization Assistant
 ---
 
-You are an expert product recommender. Your primary goal is to analyze the user's **current intent** (derived from the content/conversation history) and provide a concise, highly relevant set of product recommendations or conversational assistance.
+You are an expert product recommender. Your primary goal is to analyze the user's **current intent** (derived from the content/conversation history) and provide a concise, highly relevant set of p[...]
 
 ---
 INPUT DATA:
@@ -118,10 +65,10 @@ $$
 MANDATORY RULES:
 1.  **JSON ONLY (Intent A):** If the response is JSON (Intent A), it MUST be valid structured JSON and nothing else.
 2.  **Natural Language ONLY (Intent B):** If the response is conversational (Intent B), it MUST be natural language text ONLY and contain NO JSON.
-3.  **Image Integrity:** Use the \`product.image\` value *EXACTLY* as provided. No modification or fabrication.
-4.  **Link Integrity:** The link must use \`product._id\` exactly: \`https://estore-frontend-jade.vercel.app/Product/\` + \`product._id\`.
+3.  **Image Integrity:** Use the `product.image` value *EXACTLY* as provided. No modification or fabrication.
+4.  **Link Integrity:** The link must use `product._id` exactly: `https://estore-frontend-jade.vercel.app/Product/` + `product._id`.
 5.  **No Hallucination:** Do not create or guess any values that are not present in the input Products[].
-6.  **No Match:** If no products are relevant to the user's current intent, the \`products\` array should be empty (\`[]\`).
+6.  **No Match:** If no products are relevant to the user's current intent, the `products` array should be empty (`[]`).
 
 Context Products[]: ${JSON.stringify(Products)}
 `;
@@ -131,28 +78,28 @@ const history = [];
 const chatRouter_V2 = express.Router();
 
 // Generate and store product embeddings
-// Generate and store product embeddings
 chatRouter_V2.post('/prodEmbedding', async (req, res) => {
 
   try {
     const docs = await ProductModel.where('Embeddings').size(0).exec();
 
-    docs.map(async (item, key) => {
+    // Process sequentially and await each embedding/update to avoid unhandled promises
+    for (const item of docs) {
 
       const embeddings = new GoogleGenerativeAIEmbeddings({
-        model: "text-embedding-004", // 768 dimensions
+        model: "gemini-embedding-001", // updated model
         taskType: TaskType.RETRIEVAL_DOCUMENT,
         title: "Document title",
         apiKey: process.env.GEMINI_API_KEY
       });
 
-      const prodembedding = await embeddings.embedQuery(JSON.stringify(docs[key]));
-      const updatedProduct = await ProductModel.findByIdAndUpdate(
+      const prodembedding = await embeddings.embedQuery(JSON.stringify(item));
+      await ProductModel.findByIdAndUpdate(
         item._id,
         { Embeddings: prodembedding },
       );
 
-    })
+    }
 
     res.status(201).send({
       message: `successfully created ${docs.length} product embeddings`,
@@ -175,7 +122,7 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
       parts: [{ text: query, type: "text" }]
     });
     const embeddings = new GoogleGenerativeAIEmbeddings({
-      model: "text-embedding-004", // 768 dimensions
+      model: "gemini-embedding-001", // updated model
       taskType: TaskType.RETRIEVAL_DOCUMENT,
       title: "Document title",
       apiKey: process.env.GEMINI_API_KEY
@@ -186,7 +133,7 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
         $vectorSearch: {
           index: "vector_index",
           path: "Embeddings",
-          queryVector: queryEmbedding, // array of 768 numbers
+          queryVector: queryEmbedding, // array of numbers
           numCandidates: 100,
           limit: 5
         }
@@ -221,8 +168,6 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
       role: "model",
       parts: [{ text: AIResponseText, type: "text" }]
     });
-
-
 
     return res.status(201).send({
       message: `successfully`,
