@@ -6,7 +6,6 @@ import { ProductModel } from '../models/ProductModel.js';
 import { UserModel } from '../models/user.js';
 import { protect } from '../middleware/auth.js';
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { TaskType } from "@google/generative-ai";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const getSystemInstruction = (Products) => {
@@ -65,10 +64,10 @@ $$
 MANDATORY RULES:
 1.  **JSON ONLY (Intent A):** If the response is JSON (Intent A), it MUST be valid structured JSON and nothing else.
 2.  **Natural Language ONLY (Intent B):** If the response is conversational (Intent B), it MUST be natural language text ONLY and contain NO JSON.
-3.  **Image Integrity:** Use the `product.image` value *EXACTLY* as provided. No modification or fabrication.
-4.  **Link Integrity:** The link must use `product._id` exactly: `https://estore-frontend-jade.vercel.app/Product/` + `product._id`.
+3.  **Image Integrity:** Use the 'product.image' value *EXACTLY* as provided. No modification or fabrication.
+4.  **Link Integrity:** The link must use 'product._id' exactly: 'https://estore-frontend-jade.vercel.app/Product/' + 'product._id'.
 5.  **No Hallucination:** Do not create or guess any values that are not present in the input Products[].
-6.  **No Match:** If no products are relevant to the user's current intent, the `products` array should be empty (`[]`).
+6.  **No Match:** If no products are relevant to the user's current intent, the 'products' array should be empty ('[]').
 
 Context Products[]: ${JSON.stringify(Products)}
 `;
@@ -88,7 +87,7 @@ chatRouter_V2.post('/prodEmbedding', async (req, res) => {
 
       const embeddings = new GoogleGenerativeAIEmbeddings({
         model: "gemini-embedding-001", // updated model
-        taskType: TaskType.RETRIEVAL_DOCUMENT,
+        taskType: "RETRIEVAL_DOCUMENT",
         title: "Document title",
         apiKey: process.env.GEMINI_API_KEY
       });
@@ -123,7 +122,7 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
     });
     const embeddings = new GoogleGenerativeAIEmbeddings({
       model: "gemini-embedding-001", // updated model
-      taskType: TaskType.RETRIEVAL_DOCUMENT,
+      taskType: "RETRIEVAL_QUERY",
       title: "Document title",
       apiKey: process.env.GEMINI_API_KEY
     });
