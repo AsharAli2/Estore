@@ -47,11 +47,16 @@ app.use(cors({
             return callback(null, true);
         }
 
-        if (allowedOrigins.includes(origin)) {
+        // Allow listed origins plus this project's Vercel preview deployments
+        // e.g. https://estore-frontend-<hash>-asharali2s-projects.vercel.app
+        const isPreview = /^https:\/\/estore-frontend-[a-z0-9-]+-asharali2s-projects\.vercel\.app$/.test(origin);
+
+        if (allowedOrigins.includes(origin) || isPreview) {
             return callback(null, true);
         }
 
-        return callback(new Error("Not allowed by CORS"));
+        // Reject without throwing so the response isn't a 500
+        return callback(null, false);
     },
 }));
 app.use(bodyParser.json());
