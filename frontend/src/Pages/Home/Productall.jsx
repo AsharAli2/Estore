@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { API_URL } from "../../../utils/constant";
+import { optimizeImage } from "../../utils/image";
 
 export default function Productall() {
   const [Product, setProduct] = useState([]);
@@ -143,7 +144,8 @@ export default function Productall() {
                         )}
                         <CardMedia
                           component="img"
-                          image={item.image}
+                          image={optimizeImage(item.image, 400)}
+                          loading="lazy"
                           title={item.name}
                           sx={{
                             height: 200,

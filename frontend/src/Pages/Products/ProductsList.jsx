@@ -27,6 +27,7 @@ import {
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { fetchProducts } from "../../utils/api";
+import { optimizeImage } from "../../utils/image";
 import cartcontext from "../../context/Cartcontext";
 import Loading from "../../Components/Loading/Loading";
 
@@ -42,7 +43,16 @@ export default function ProductsList() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [totalCount, setTotalCount] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [brands, setBrands] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -189,8 +199,8 @@ export default function ProductsList() {
             <TextField
               placeholder="Search products"
               size="small"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               sx={{
                 minWidth: 240,
                 "& .MuiOutlinedInput-root": { borderRadius: 2 },
@@ -346,7 +356,8 @@ export default function ProductsList() {
                   >
                     <CardMedia
                       component="img"
-                      image={item.image}
+                      image={optimizeImage(item.image, 400)}
+                      loading="lazy"
                       alt={item.name}
                       sx={{
                         height: 180,

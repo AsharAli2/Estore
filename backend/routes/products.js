@@ -25,8 +25,6 @@ productrouter.get('/', async (req, res) => {
         if (category) {
             filter.Category = category;
         }
-
-        let useTextScore = false;
         if (search) {
             const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             filter.name = { $regex: new RegExp(escaped, 'i') };
@@ -48,26 +46,25 @@ productrouter.get('/', async (req, res) => {
             filter.averageRating = { $gte: minRating };
         }
 
-        // total count for pagination
-        const total = await ProductModel.countDocuments(filter);
-
         // build sort
-        let query = ProductModel.find(filter).select('-Embeddings');
-        if (useTextScore && !sort) {
-            query = query.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' } });
-        } else if (sort === 'price_asc') {
-            query = query.sort({ price: 1 });
-        } else if (sort === 'price_desc') {
-            query = query.sort({ price: -1 });
-        } else if (sort === 'rating_desc') {
-            query = query.sort({ averageRating: -1 });
-        } else {
-            // default sort by newest (Mongo _id contains creation time)
-            query = query.sort({ _id: -1 });
-        }
+        let sortSpec = { _id: -1 }; // default: newest first
+        if (sort === 'price_asc') sortSpec = { price: 1 };
+        else if (sort === 'price_desc') sortSpec = { price: -1 };
+        else if (sort === 'rating_desc') sortSpec = { averageRating: -1 };
 
-        const products = await query.skip((page - 1) * pagesize).limit(pagesize).exec();
+        // run count and page query in parallel; lean() skips Mongoose document overhead
+        const [total, products] = await Promise.all([
+            ProductModel.countDocuments(filter),
+            ProductModel.find(filter)
+                .select('-Embeddings -__v')
+                .sort(sortSpec)
+                .skip((page - 1) * pagesize)
+                .limit(pagesize)
+                .lean(),
+        ]);
 
+        // let Vercel's edge cache serve repeat requests
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.json({ products, count: total, page, pagesize });
     } catch (error) {
         console.error(error);
