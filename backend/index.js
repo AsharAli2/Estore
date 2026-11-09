@@ -71,16 +71,6 @@ app.use("/api/products", productrouter);
 app.use("/api/order", orderRouter);
 app.use("/api/dashboard", dashRouter);
 
-// Temporary diagnostic: reports the real DB connection state/error (no secrets).
-app.get("/api/dbstatus", async (req, res) => {
-    try {
-        await Promise.race([dbReady, new Promise((_, rej) => setTimeout(() => rej(new Error("still connecting after 9s")), 9000))]);
-        res.json({ ok: true, readyState: mongoose.connection.readyState });
-    } catch (err) {
-        res.status(503).json({ ok: false, readyState: mongoose.connection.readyState, error: `${err.name}: ${String(err.message).slice(0, 300)}`, uriScheme: String(process.env.mongoURL || "").split(":")[0] || "missing", nodeEnv: process.env.NODE_ENV });
-    }
-});
-
 app.get("/", (req, res) => {
     res.send("Hello from the server!");
 });
