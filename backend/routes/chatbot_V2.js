@@ -208,4 +208,35 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
 
 })
 
+// Raw semantic product search (no LLM reply). Used by the external AI assistant app.
+chatRouter_V2.post('/semanticSearch', async (req, res) => {
+  // Server-to-server only: when ASSISTANT_API_KEY is set, require it (unset = open, for local dev).
+  const expected = process.env.ASSISTANT_API_KEY;
+  if (expected && req.get('x-assistant-key') !== expected) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+  try {
+    const { query } = req.body;
+    if (!query || typeof query !== "string" || !query.trim()) {
+      return res.status(400).send({ message: "query is required" });
+    }
+    const limit = Math.min(Math.max(parseInt(req.body.limit, 10) || 8, 1), 12);
+    const embeddings = new GoogleGenerativeAIEmbeddings({
+      model: "gemini-embedding-001",
+      taskType: "RETRIEVAL_QUERY",
+      apiKey: process.env.GEMINI_API_KEY
+    });
+    const queryEmbedding = await embeddings.embedQuery(query);
+    const products = await ProductModel.aggregate([
+      { $vectorSearch: { index: "vector_index", path: "Embeddings", queryVector: queryEmbedding, numCandidates: 100, limit } },
+      { $project: { name: 1, price: 1, image: 1, description: 1, Brand: 1, Category: 1, averageRating: 1, ratingCount: 1, score: { $meta: 'vectorSearchScore' } } }
+    ]);
+    res.set('Cache-Control', 'no-store');
+    return res.send({ products });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Failed to search products" });
+  }
+});
+
 export { chatRouter_V2 }
