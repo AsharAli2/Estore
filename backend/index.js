@@ -1,6 +1,7 @@
 
 
 
+import dns from "dns";
 import express from "express";
 import mongoose from "mongoose";
 import { dashRouter } from "./routes/dashboard.js";
@@ -19,6 +20,11 @@ import bodyParser from "body-parser";
 import { chatRouter_V2 } from "./routes/chatbot_V2.js";
 
 config();
+
+// Local dev: some networks/ISPs refuse the SRV lookups needed by mongodb+srv:// URIs
+if (process.env.NODE_ENV !== "production") {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 const app = express();
 
