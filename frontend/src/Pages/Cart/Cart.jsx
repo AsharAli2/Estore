@@ -137,7 +137,7 @@ export default function Cart() {
                     {item.name}
                   </Typography>
                   <Typography color="primary" fontWeight={500}>
-                    Rs.{item.price} × {quantities[item._id] || 1}
+                    ${item.price} × {quantities[item._id] || 1}
                   </Typography>
 
                   <Stack direction="row" spacing={1} alignItems="center" mt={1}>
@@ -177,7 +177,7 @@ export default function Cart() {
               <Stack spacing={1.5}>
                 <Typography>Items: {cartitem.length}</Typography>
                 <Typography>
-                  Total Price: <b>Rs.{totalPrice.toFixed(2)}</b>
+                  Total Price: <b>${totalPrice.toFixed(2)}</b>
                 </Typography>
                 <Typography color="success.main">Free Delivery</Typography>
               </Stack>

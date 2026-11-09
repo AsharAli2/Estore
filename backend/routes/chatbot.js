@@ -124,7 +124,7 @@ chatRouter.post('/chat', async (req, res) => {
 
         // Generate response
         const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
             contents: history,
             config: {
                 systemInstruction: system,
@@ -157,7 +157,7 @@ chatRouter.post('/chat', async (req, res) => {
             });
 
             const updatedResponse = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
+                model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
                 contents: history,
                 config: {
                     systemInstruction: system,

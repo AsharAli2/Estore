@@ -97,7 +97,7 @@ export default function History() {
                     Order ID: #{order.id.slice(-6).toUpperCase()}
                   </Typography>
                   <Chip
-                    label={`Total: Rs. ${order.totalPrice.toFixed(2)}`}
+                    label={`Total: $${order.totalPrice.toFixed(2)}`}
                     color="primary"
                     variant="outlined"
                   />
@@ -128,7 +128,7 @@ export default function History() {
                             {product.productName}
                           </Typography>
                           <Typography variant="body2" color="textSecondary">
-                            {product.quantity} x Rs. {product.price.toFixed(2)}
+                            {product.quantity} x ${product.price.toFixed(2)}
                           </Typography>
                         </Box>
                       </Box>

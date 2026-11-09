@@ -1,3 +1,4 @@
+import 'dotenv/config'; // load .env before the Gemini client below is created
 import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenAI } from '@google/genai';
@@ -68,36 +69,68 @@ MANDATORY RULES:
 4.  **Link Integrity:** The link must use 'product._id' exactly: 'https://estore-frontend-jade.vercel.app/Product/' + 'product._id'.
 5.  **No Hallucination:** Do not create or guess any values that are not present in the input Products[].
 6.  **No Match:** If no products are relevant to the user's current intent, the 'products' array should be empty ('[]').
+7.  **Hard Requirements (budget & features):** Treat any price limit (e.g. "under $100") and any explicit feature (e.g. "wireless", "4K", "noise cancelling", a brand or category) as MUST-HAVE conditions. Only judge them from the data in Products[] (price, name, description). If the data does not clearly show a product has the requested feature, do NOT claim it does.
+8.  **When Nothing Fits:** If NO product satisfies all must-have conditions, do NOT present products as if they match. Start the 'summary' by plainly saying that nothing in the store matches exactly (e.g. "We don't have wireless headphones under $100"). You may then list up to 3 of the closest alternatives from Products[], and each 'reason' MUST state honestly how it falls short (e.g. "Wireless, but $249 – over your budget" or "Under $100, but wired"). Never hide the mismatch.
 
 Context Products[]: ${JSON.stringify(Products)}
 `;
 };
-const history = [];
+// Retry transient Gemini errors (503 overloaded, 429 rate limit) with backoff
+const generateWithRetry = async (params, attempts = 3) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (err) {
+      const retryable = err?.status === 503 || err?.status === 429;
+      if (!retryable || i >= attempts - 1) throw err;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+    }
+  }
+};
+
+// Conversation history is NOT stored on the server (it is serverless and shared by all users).
+// The client sends its own prior turns with every request; we validate and cap them here.
+const MAX_HISTORY_TURNS = 10;
+const MAX_TURN_CHARS = 4000;
+const buildContents = (clientHistory, query) => {
+  const prior = Array.isArray(clientHistory) ? clientHistory : [];
+  const turns = prior
+    .filter((m) => m && typeof m.text === "string" && m.text.trim() && (m.role === "user" || m.role === "ai" || m.role === "model"))
+    .slice(-MAX_HISTORY_TURNS)
+    .map((m) => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.text.slice(0, MAX_TURN_CHARS) }],
+    }));
+  // Gemini requires the conversation to start with a user turn
+  while (turns.length && turns[0].role !== "user") turns.shift();
+  turns.push({ role: "user", parts: [{ text: query.slice(0, MAX_TURN_CHARS) }] });
+  return turns;
+};
 
 const chatRouter_V2 = express.Router();
 
 // Generate and store product embeddings
-chatRouter_V2.post('/prodEmbedding', async (req, res) => {
+chatRouter_V2.post('/prodEmbedding', protect, async (req, res) => {
 
   try {
     const docs = await ProductModel.where('Embeddings').size(0).exec();
 
-    // Process sequentially and await each embedding/update to avoid unhandled promises
-    for (const item of docs) {
+    const embeddings = new GoogleGenerativeAIEmbeddings({
+      model: "gemini-embedding-001",
+      taskType: "RETRIEVAL_DOCUMENT",
+      apiKey: process.env.GEMINI_API_KEY
+    });
 
-      const embeddings = new GoogleGenerativeAIEmbeddings({
-        model: "gemini-embedding-001", // updated model
-        taskType: "RETRIEVAL_DOCUMENT",
-        title: "Document title",
-        apiKey: process.env.GEMINI_API_KEY
-      });
-
-      const prodembedding = await embeddings.embedQuery(JSON.stringify(item));
-      await ProductModel.findByIdAndUpdate(
-        item._id,
-        { Embeddings: prodembedding },
+    // Embed only the meaningful text, in batches
+    const toText = (d) => [d.name, d.Brand, d.Category, d.description].filter(Boolean).join(". ");
+    for (let i = 0; i < docs.length; i += 20) {
+      const batch = docs.slice(i, i + 20);
+      const vectors = await embeddings.embedDocuments(batch.map(toText));
+      await ProductModel.bulkWrite(
+        batch.map((d, j) => ({
+          updateOne: { filter: { _id: d._id }, update: { $set: { Embeddings: vectors[j] } } },
+        }))
       );
-
     }
 
     res.status(201).send({
@@ -106,8 +139,8 @@ chatRouter_V2.post('/prodEmbedding', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Checkout Error:', error);
-    res.status(500).send({ message: "Failed to process order" });
+    console.error('Embedding Error:', error);
+    res.status(500).send({ message: "Failed to create product embeddings" });
   }
 })
 
@@ -115,18 +148,16 @@ chatRouter_V2.post('/prodEmbedding', async (req, res) => {
 chatRouter_V2.post('/VectorSearch', async (req, res) => {
 
   try {
-    const { query } = req.body;
-    history.push({
-      role: "user",
-      parts: [{ text: query, type: "text" }]
-    });
+    const { query, history: clientHistory } = req.body;
+    if (!query || typeof query !== "string" || !query.trim()) {
+      return res.status(400).send({ message: "query is required" });
+    }
     const embeddings = new GoogleGenerativeAIEmbeddings({
       model: "gemini-embedding-001", // updated model
       taskType: "RETRIEVAL_QUERY",
-      title: "Document title",
       apiKey: process.env.GEMINI_API_KEY
     });
-    const queryEmbedding = await embeddings.embedQuery(JSON.stringify(query));
+    const queryEmbedding = await embeddings.embedQuery(String(query));
     const getResponse = await ProductModel.aggregate([
       {
         $vectorSearch: {
@@ -134,7 +165,7 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
           path: "Embeddings",
           queryVector: queryEmbedding, // array of numbers
           numCandidates: 100,
-          limit: 5
+          limit: 8
         }
       }, {
         $project: {
@@ -153,20 +184,16 @@ chatRouter_V2.post('/VectorSearch', async (req, res) => {
 
     const system = getSystemInstruction(getResponse);
 
-    const AIResponse = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: history,
+    const AIResponse = await generateWithRetry({
+      model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+      contents: buildContents(clientHistory, query),
       config: {
         systemInstruction: system,
       }
     });
 
-    const AIResponseText = AIResponse.candidates[0]?.content?.parts[0]?.text;
-
-    history.push({
-      role: "model",
-      parts: [{ text: AIResponseText, type: "text" }]
-    });
+    const AIResponseText = AIResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!AIResponseText) throw new Error("Empty response from model");
 
     return res.status(201).send({
       message: `successfully`,

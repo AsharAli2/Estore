@@ -20,6 +20,7 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import cartcontext from "../../context/Cartcontext";
 import { API_URL } from "../../../utils/constant";
 import Loading from "../../Components/Loading/Loading";
+import { optimizeImage } from "../../utils/image";
 
 export default function Product() {
   const navigate = useNavigate();
@@ -77,7 +78,10 @@ export default function Product() {
   };
 
   const images = getImageGallery();
-  const mainImage = images[selectedImage] || SingleProduct.image || "";
+  const mainImage = optimizeImage(
+    images[selectedImage] || SingleProduct.image || "",
+    900
+  );
 
   const fetchReviews = async () => {
     const response = await fetch(`${API_URL}/products/review/${id}`);
@@ -205,7 +209,7 @@ export default function Product() {
                       }}
                     >
                       <img
-                        src={img}
+                        src={optimizeImage(img, 160)}
                         alt={`View ${idx + 1}`}
                         style={{
                           maxWidth: "90%",
@@ -264,7 +268,7 @@ export default function Product() {
                     variant="h5"
                     sx={{ fontWeight: 700, color: "#3498db", mb: 1 }}
                   >
-                    Rs. {SingleProduct.price}
+                    ${SingleProduct.price}
                   </Typography>
                   <Typography variant="body2" color="success.main">
                     ✓ In Stock

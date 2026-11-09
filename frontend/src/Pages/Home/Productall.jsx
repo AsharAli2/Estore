@@ -177,7 +177,7 @@ export default function Productall() {
                         variant="body2"
                         sx={{ textAlign: "center", color: "gray" }}
                       >
-                        Rs.{item.price}
+                        ${item.price}
                       </Typography>
                     </Card>
                   </Link>

@@ -401,7 +401,7 @@ export default function ProductsList() {
                         variant="h6"
                         sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}
                       >
-                        Rs.{item.price}
+                        ${item.price}
                       </Typography>
                       {item.averageRating && (
                         <Typography

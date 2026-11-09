@@ -67,3 +67,14 @@ Architecture: product embeddings (`gemini-embedding-001`) stored in MongoDB → 
 2. #3, #5
 3. #7 (structured output simplifies the frontend)
 4. #6 and frontend fixes
+
+## Resolved
+
+- #1 Global shared chat history: server keeps no history; the client sends its prior turns (capped at 10, validated) with each `/VectorSearch` request.
+- #2 (partly) `POST /api/prodEmbedding` now requires a logged-in user (`protect`). `/VectorSearch` is still public and not rate limited.
+- #3 API key loaded before dotenv, retired `gemini-2.0-flash` model (now `gemini-3.5-flash-lite`, override with `GEMINI_MODEL`), query-embedding `title` error, 503/429 retries.
+- #4 Error handling in `/prodEmbedding` and `/VectorSearch`.
+- #5/#6 Products re-embedded with clean text in batches; `vector_index` recreated at 3072 dims.
+- Duplicate "Sony WH-1000XM5" removed from the database.
+
+Open: `/prodEmbedding` has no admin role check (the app has no roles), 6 other duplicated products in the catalog (Dell XPS 15 x3, Sony Alpha A7 IV, Samsung Galaxy S24 Ultra, Canon EOS R6 Mark II, iPhone 15 Pro Max, Google Pixel 8 Pro), `/VectorSearch` rate limiting, and the other frontend items above.
